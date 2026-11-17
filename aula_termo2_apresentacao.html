@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apresentação: Termodinâmica - Prof. Marcos Alex dos Santos (CECA)</title>
+
+    <!-- =====================================================================
+         1. BIBLIOTECA MATHJAX PARA RENDERIZAÇÃO DAS EQUAÇÕES LATEX
+         Permite escrever equações entre $...$ ou $$...$$ exatamente como no Beamer.
+         ===================================================================== -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- =====================================================================
+         2. ESTILOS CSS E TEMAS DE PLANO DE FUNDO
+         Edite as variáveis em :root para alterar cores e fundos globalmente.
+         ===================================================================== -->
+    <style>
+        /* TEMA PADRÃO: Papel Científico Limpo */
+        :root {
+            --outer-bg: #1e293b;          /* Fundo ao redor do slide (estilo projetor) */
+            --slide-bg: #ffffff;          /* Fundo interno do slide */
+            --slide-pattern: radial-gradient(#e2e8f0 1px, transparent 1px);
+            --slide-pattern-size: 20px 20px;
+            --header-bg: #14532d;         /* Verde institucional CECA */
+            --header-text: #ffffff;
+            --title-color: #15803d;
+            --text-color: #1e293b;
+            --muted-color: #64748b;
+            --box-bg: #f8fafc;
+            --box-border: #15803d;
+            --table-header: #dcfce7;
+        }
+
+        /* TEMA 2: Verde Suave CECA */
+        [data-theme="ceca"] {
+            --outer-bg: #052e16;
+            --slide-bg: #f0fdf4;
+            --slide-pattern: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            --slide-pattern-size: cover;
+            --header-bg: #166534;
+            --title-color: #14532d;
+            --box-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        /* TEMA 3: Modo Escuro (Slate Dark) */
+        [data-theme="dark"] {
+            --outer-bg: #020617;
+            --slide-bg: #0f172a;
+            --slide-pattern: radial-gradient(#1e293b 1px, transparent 1px);
+            --slide-pattern-size: 24px 24px;
+            --header-bg: #064e3b;
+            --title-color: #4ade80;
+            --text-color: #f1f5f9;
+            --muted-color: #94a3b8;
+            --box-bg: #1e293b;
+            --box-border: #22c55e;
+            --table-header: #065f46;
+        }
+
+        /* TEMA 4: Blueprint Engenharia */
+        [data-theme="blueprint"] {
+            --outer-bg: #0f172a;
+            --slide-bg: #1e3a8a;
+            --slide-pattern: 
+                linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+            --slide-pattern-size: 25px 25px;
+            --header-bg: #172554;
+            --title-color: #38bdf8;
+            --text-color: #ffffff;
+            --muted-color: #bfdbfe;
+            --box-bg: rgba(23, 37, 84, 0.85);
+            --box-border: #38bdf8;
+            --table-header: #1d4ed8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--outer-bg);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* =====================================================================
+           3. CONTAINER DO SLIDE (Proporção Widescreen 16:9 responsiva)
+           ===================================================================== */
+        .presentation-stage {
+            width: 96vw;
+            max-width: 1180px;
+            height: 84vh;
+            max-height: 680px;
+            background-color: var(--slide-bg);
+            background-image: var(--slide-pattern);
+            background-size: var(--slide-pattern-size);
+            color: var(--text-color);
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Barra superior estilo LaTeX Beamer (Mostra as 5 seções da aula) */
+        .beamer-topbar {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 12px;
+            font-size: 0.78rem;
+            border-bottom: 2px solid rgba(255,255,255,0.15);
+        }
+
+        .beamer-sec {
+            opacity: 0.55;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: opacity 0.2s;
+        }
+
+        .beamer-sec.active-sec {
+            opacity: 1;
+            font-weight: bold;
+        }
+
+        .dots {
+            letter-spacing: 2px;
+            font-size: 0.65rem;
+            color: #86efac;
+        }
+
+        /* Área útil interna de cada slide */
+        .slide {
+            display: none; /* Apenas o slide ativo é exibido */
+            flex: 1;
+            padding: 26px 40px;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            animation: slideFade 0.25s ease;
+        }
+
+        .slide.active {
+            display: flex;
+        }
+
+        @keyframes slideFade {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Título do Slide */
+        .slide-title {
+            font-size: 1.55rem;
+            color: var(--title-color);
+            border-bottom: 2px solid var(--box-border);
+            padding-bottom: 6px;
+            margin-bottom: 18px;
+            font-weight: 700;
+        }
+
+        /* Layouts de colunas dentro do slide */
+        .cols-2 {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+            align-items: center;
+            flex: 1;
+        }
+
+        .cols-equal {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Listas e Textos */
+        ul.beamer-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-size: 1.05rem;
+            line-height: 1.5;
+        }
+
+        ul.beamer-list li::before {
+            content: "▶ ";
+            color: var(--title-color);
+            font-size: 0.85rem;
+        }
+
+        /* Caixas de Destaque / Equações */
+        .eq-box {
+            background: var(--box-bg);
+            border-left: 4px solid var(--box-border);
+            padding: 12px 18px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-size: 1.08rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        /* Tabelas compactas para caberem perfeitamente no slide */
+        table.slide-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        table.slide-table th, table.slide-table td {
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            padding: 4px 8px;
+            text-align: left;
+        }
+
+        table.slide-table th {
+            background-color: var(--table-header);
+            color: var(--text-color);
+        }
+
+        /* Rodapé do Slide (Instituição + Número da Página X/42) */
+        .slide-footer {
+            background: rgba(0, 0, 0, 0.04);
+            border-top: 1px solid rgba(148, 163, 184, 0.3);
+            padding: 6px 24px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--muted-color);
+            font-weight: 600;
+        }
+
+        /* =====================================================================
+           4. BARRA DE CONTROLE INFERIOR (Navegação, Temas e Visão Geral)
+           ===================================================================== */
+        .controls-bar {
+            width: 96vw;
+            max-width: 1180px;
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #f8fafc;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .ctrl-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        button.ctrl-btn, select.ctrl-select {
+            background: #334155;
+            color: #ffffff;
+            border: 1px solid #475569;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            transition: background 0.2s;
+        }
+
+        button.ctrl-btn:hover {
+            background: #15803d;
+            border-color: #22c55e;
+        }
+
+        /* Modal de Visão Geral (Grade de todos os 42 slides) */
+        .overview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 999;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+            max-width: 1200px;
+            margin: 20px auto;
+        }
+
+        .thumb-card {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .thumb-card:hover {
+            border-color: #4ade80;
+            background: #064e3b;
+        }
+
+        /* Estilos para diagramas SVG internos */
+        svg.diagram {
+            width: 100%;
+            max-height: 290px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =====================================================================
+         PALCO PRINCIPAL DA APRESENTAÇÃO
+         ===================================================================== -->
+    <div class="presentation-stage" id="stage">
+        
+        <!-- Cabeçalho Superior Estilo Beamer (Atualizado automaticamente pelo JS) -->
+        <header class="beamer-topbar">
+            <div class="beamer-sec" id="sec-1"><span>Formas de Energia</span><span class="dots">●●●●</span></div>
+            <div class="beamer-sec" id="sec-2"><span>Calor</span><span class="dots">●●●●●●●●●●●●●</span></div>
+            <div class="beamer-sec" id="sec-3"><span>Trabalho termodinâmico</span><span class="dots">●●●●●●●●●●●●●</span></div>
+            <div class="beamer-sec" id="sec-4"><span>1ª Lei</span><span class="dots">●●●●</span></div>
+            <div class="beamer-sec" id="sec-5"><span>Calor - Leis</span><span class="dots">●●●●●●●</span></div>
+        </header>
+
+        <!-- =================================================================
+             SLIDE 1: CAPA (Página 1/42)
+             ================================================================= -->
+        <section class="slide active" data-sec="1" data-title="Capa - Termodinâmica">
+            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+                <!-- Logotipo estilizado CECA em SVG -->
+                <svg width="110" height="110" viewBox="0 0 120 120" style="margin-bottom:16px;">
+                    <polygon points="60,10 95,30 95,70 60,90 25,70 25,30" fill="none" stroke="#15803d" stroke-width="6"/>
+                    <path d="M60,90 Q30,75 20,105 Q45,110 60,90 Z" fill="#15803d"/>
+                    <path d="M60,90 Q90,75 100,105 Q75,110 60,90 Z" fill="#15803d"/>
+                    <text x="60" y="55" text-anchor="middle" fill="#15803d" font-weight="bold" font-size="16">CECA</text>
+                </svg>
+                <div style="background:#14532d; color:white; padding:18px 48px; border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,0.15); margin-bottom:20px;">
+                    <h1 style="font-size:2.2rem;">Termodinâmica</h1>
+                </div>
+                <p style="font-size:1.3rem; font-weight:600; margin-bottom:6px;">Prof. Marcos Alex dos Santos</p>
+                <p style="font-size:1.05rem; color:var(--muted-color);">Centro de Ciências Agrárias (CECA)</p>
+                <p style="font-size:0.95rem; color:var(--muted-color); margin-top:8px;">26 de Março de 2019</p>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 2: FORMAS DE ENERGIA (Página 2/42)
+             ================================================================= -->
+        <section class="slide" data-sec="1" data-title="Formas de Energia">
+            <h2 class="slide-title">Formas de Energia</h2>
+            <ul class="beamer-list">
+                <li><strong>Energia Macroscópica:</strong> Energia que um sistema possui como um todo, em relação a um referencial externo, como a <em>Energia Cinética</em> e a <em>Energia Potencial</em> (gravitacional, elástica etc.).</li>
+                <li><strong>Energia Microscópica:</strong> São as formas de energia relacionadas à estrutura molecular de um sistema e ao grau de atividade molecular, sendo independentes de um referencial externo. Basicamente, corresponde à energia cinética e potencial das moléculas de um sistema.</li>
+            </ul>
+            <div class="eq-box" style="margin-top:24px;">
+                A soma de todas as formas de energia microscópica é chamada de <strong>Energia Interna ($U$)</strong>.
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 3: ENERGIA INTERNA - SENSÍVEL (Página 3/42)
+             ================================================================= -->
+        <section class="slide" data-sec="1" data-title="Energia Interna (Sensível)">
+            <h2 class="slide-title">Energia Interna</h2>
+            <div class="cols-2">
+                <ul class="beamer-list">
+                    <li><strong>Energia Sensível:</strong> Parte da energia interna associada ao movimento de translação, rotação e vibração das moléculas e rotação de elétrons ao redor do núcleo e movimento de elétrons em torno de seu eixo (spin).</li>
+                    <li>Essa energia está diretamente associada à <strong>temperatura do sistema</strong>.</li>
+                </ul>
+                <!-- Ilustração esquemática dos modos moleculares -->
+                <svg class="diagram" viewBox="0 0 300 220">
+                    <text x="150" y="22" text-anchor="middle" font-size="13" font-weight="bold" fill="#1e293b">Modos de Energia Sensível</text>
+                    <circle cx="70" cy="70" r="14" fill="#3b82f6"/><line x1="90" y1="70" x2="130" y2="70" stroke="#1e293b" stroke-width="2" marker-end="url(#arrow)"/>
+                    <text x="85" y="105" text-anchor="middle" font-size="11" fill="#334155">Translação Molecular</text>
+                    
+                    <circle cx="210" cy="70" r="10" fill="#ef4444"/><circle cx="245" cy="70" r="10" fill="#ef4444"/>
+                    <line x1="220" y1="70" x2="235" y2="70" stroke="#1e293b" stroke-width="3"/>
+                    <path d="M227,50 A20,20 0 0,1 245,60" fill="none" stroke="#15803d" stroke-width="2"/>
+                    <text x="227" y="105" text-anchor="middle" font-size="11" fill="#334155">Rotação & Vibração</text>
+
+                    <circle cx="150" cy="165" r="12" fill="#f59e0b"/>
+                    <ellipse cx="150" cy="165" rx="45" ry="18" fill="none" stroke="#64748b" stroke-dasharray="4"/>
+                    <circle cx="195" cy="165" r="5" fill="#0284c7"/>
+                    <text x="150" y="205" text-anchor="middle" font-size="11" fill="#334155">Translação e Spin de Elétrons</text>
+                </svg>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 4: ENERGIA INTERNA - LATENTE, QUÍMICA, NUCLEAR (Página 4/42)
+             ================================================================= -->
+        <section class="slide" data-sec="1" data-title="Energia Interna (Latente, Química e Nuclear)">
+            <h2 class="slide-title">Energia Interna</h2>
+            <ul class="beamer-list">
+                <li><strong>Energia Latente:</strong> Energia associada à mudança de fase. Este processo pode ocorrer sem alteração da composição química da substância.</li>
+                <li><strong>Energia Química:</strong> Energia interna associada às ligações atômicas de uma molécula. Por exemplo, numa reação química de combustão, algumas ligações químicas são destruídas, enquanto outras são formadas. Isso altera a Energia Interna.</li>
+                <li><strong>Energia Nuclear:</strong> Energia associada às ligações fortes existentes no interior do núcleo do átomo propriamente dito (reações de fissão ou fusão).</li>
+            </ul>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 5: BALANÇO DE ENERGIA INTERNA E TOTAL (Página 5/42)
+             ================================================================= -->
+        <section class="slide" data-sec="1" data-title="Energia Interna e Energia Total">
+            <h2 class="slide-title">Energia Interna</h2>
+            <div class="eq-box">
+                $$\text{Energia Interna} = \text{Energia Sensível} + \text{Energia Latente} + \text{Energia Química} + \text{Energia Nuclear}$$
+                $$\text{Energia Total} = \text{Energia Macroscópica (mecânica)} + \text{Energia Interna}$$
+            </div>
+            <ul class="beamer-list" style="margin-top:14px;">
+                <li>As formas de energia interna podem ser contidas ou armazenadas no sistema.</li>
+                <li>Em <strong>sistema fechado</strong>, a única forma de troca de energia entre o meio através da fronteira é por meio de <strong>Calor</strong> ou <strong>Trabalho</strong>. No <strong>sistema aberto</strong> ocorre fluxo de massa.</li>
+            </ul>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 6: CALOR (Página 6/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Calor">
+            <h2 class="slide-title">Calor</h2>
+            <ul class="beamer-list">
+                <li><strong>Calor:</strong> É definido como a transferência de energia através da fronteira do sistema devido a uma diferença de temperatura entre o sistema e o meio.</li>
+                <li><strong>Exemplo:</strong> Ao aquecer uma panela com água no fogão, a chama/forno está a uma temperatura maior do que a água na panela, então a água recebe energia (por calor).</li>
+                <li>O calor, energia térmica em trânsito, pode ocorrer por três processos: <strong>condução térmica</strong>, <strong>convecção</strong> e <strong>radiação</strong>.</li>
+            </ul>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 7: UNIDADE DE CALOR (Página 7/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Unidade de Calor">
+            <h2 class="slide-title">Unidade de Calor</h2>
+            <ul class="beamer-list">
+                <li>Inicialmente os cientistas definiam calor como um fluido chamado <em>Caloric</em>. Daí, então, surgiu a unidade <strong>caloria (cal)</strong>.</li>
+                <li><strong>$1\text{ cal}$</strong> é definido como a energia necessária para elevar a temperatura de $1\text{ g}$ de água de $14,5^\circ\text{C}$ para $15,5^\circ\text{C}$.</li>
+                <li><strong>$1\text{ Btu}$ (British thermal unit)</strong> é a quantidade de energia transferida necessária para elevar a temperatura de $1\text{ lb}$ de água de $63^\circ\text{F}$ para $64^\circ\text{F}$.</li>
+            </ul>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 8: EQUIVALÊNCIA MECÂNICA DE CALOR (Página 8/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Equivalência Mecânica de Calor">
+            <h2 class="slide-title">Equivalência Mecânica de Calor</h2>
+            <div class="cols-2">
+                <!-- Experimento de Joule em SVG -->
+                <svg class="diagram" viewBox="0 0 280 230">
+                    <rect x="75" y="60" width="130" height="140" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+                    <rect x="85" y="75" width="110" height="115" fill="#bae6fd"/>
+                    <line x1="140" y1="25" x2="140" y2="175" stroke="#475569" stroke-width="5"/>
+                    <rect x="110" y="120" width="60" height="35" fill="#0284c7" opacity="0.7"/>
+                    <!-- Polias e Massas m -->
+                    <circle cx="45" cy="50" r="14" fill="#94a3b8" stroke="#1e293b" stroke-width="2"/>
+                    <line x1="45" y1="36" x2="140" y2="36" stroke="#78350f" stroke-width="2"/>
+                    <line x1="31" y1="50" x2="31" y2="130" stroke="#78350f" stroke-width="2"/>
+                    <rect x="16" y="130" width="30" height="35" fill="#f59e0b" stroke="#b45309" stroke-width="2"/>
+                    <text x="31" y="152" text-anchor="middle" font-weight="bold" font-size="13">m</text>
+
+                    <circle cx="235" cy="50" r="14" fill="#94a3b8" stroke="#1e293b" stroke-width="2"/>
+                    <line x1="140" y1="44" x2="235" y2="36" stroke="#78350f" stroke-width="2"/>
+                    <line x1="249" y1="50" x2="249" y2="130" stroke="#78350f" stroke-width="2"/>
+                    <rect x="234" y="130" width="30" height="35" fill="#f59e0b" stroke="#b45309" stroke-width="2"/>
+                    <text x="249" y="152" text-anchor="middle" font-weight="bold" font-size="13">m</text>
+                    <text x="140" y="218" text-anchor="middle" font-size="11" fill="#334155">Isolante Térmico (Experimento de Joule)</text>
+                </svg>
+                <div>
+                    <div class="eq-box">
+                        $$W \sim \Delta T$$
+                    </div>
+                    <p style="font-size:1.05rem; line-height:1.6; margin:14px 0;">O fator de proporcionalidade encontrado por Joule foi, precisamente, $4,186\text{ J/g}^\circ\text{C}$.</p>
+                    <div class="eq-box" style="text-align:center; font-size:1.3rem; font-weight:bold;">
+                        $$1\text{ cal} = 4,186\text{ J}$$
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 9: CAPACIDADE CALORÍFICA (Página 9/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Capacidade Calorífica (térmica)">
+            <h2 class="slide-title">Capacidade Calorífica (térmica)</h2>
+            <ul class="beamer-list">
+                <li>Quando energia é adicionada a um sistema, sua temperatura geralmente aumenta (exceção ocorre na mudança de fase).</li>
+                <li><strong>Capacidade Calorífica ($C$)</strong> é definida como a quantidade de energia necessária para elevar a temperatura de uma substância em $1^\circ\text{C}$. Considerando calor ($Q$) como a transferência e $\Delta T$ a variação de temperatura, então:</li>
+            </ul>
+            <div class="eq-box" style="text-align:center; font-size:1.25rem; margin-top:20px;">
+                $$C = \frac{Q}{\Delta T} \quad \therefore \quad Q = C \Delta T$$
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 10: CALOR ESPECÍFICO (Página 10/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Calor específico">
+            <h2 class="slide-title">Calor específico</h2>
+            <ul class="beamer-list">
+                <li><strong>Calor específico ($c$)</strong> é definido como a Capacidade Calórica por unidade de massa. Ou seja, como $C = \frac{Q}{\Delta T}$, então:
+                    <div class="eq-box" style="text-align:center;">
+                        $$c = \frac{C}{m} \quad \text{ou} \quad C = mc \implies c = \frac{Q}{m\Delta T}$$
+                    </div>
+                </li>
+                <li>Podemos também definir calor específico como a quantidade de energia necessária para elevar a temperatura de $1\text{ grama}$ de uma substância em $1^\circ\text{C}$. Explicitando $Q$:
+                    <div class="eq-box" style="text-align:center; font-size:1.25rem;">
+                        $$Q = mc\Delta T$$
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 11: TABELA DE CALOR ESPECÍFICO (Página 11/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Tabela de Calor Específico">
+            <h2 class="slide-title">Calor específico a $25^\circ\text{C}$ e pressão atmosférica</h2>
+            <div class="cols-2">
+                <table class="slide-table">
+                    <thead><tr><th>Substância</th><th>$c$ ($\text{J/kg}\cdot^\circ\text{C}$)</th><th>$c$ ($\text{cal/g}^\circ\text{C}$)</th></tr></thead>
+                    <tbody>
+                        <tr><td>Alumínio</td><td>900</td><td>0,215</td></tr>
+                        <tr><td>Berílio</td><td>1 830</td><td>0,436</td></tr>
+                        <tr><td>Cobre</td><td>387</td><td>0,0924</td></tr>
+                        <tr><td>Ouro / Chumbo</td><td>129 / 128</td><td>0,0308 / 0,0305</td></tr>
+                        <tr><td>Ferro / Prata</td><td>448 / 234</td><td>0,107 / 0,056</td></tr>
+                        <tr><td>Vidro / Mármore</td><td>837 / 860</td><td>0,200 / 0,21</td></tr>
+                        <tr><td>Gelo ($-5^\circ\text{C}$)</td><td>2 090</td><td>0,50</td></tr>
+                        <tr><td>Madeira</td><td>1 700</td><td>0,41</td></tr>
+                        <tr><td>Álcool Etílico / Mercúrio</td><td>2 400 / 140</td><td>0,58 / 0,033</td></tr>
+                        <tr><td><strong>Água ($15^\circ\text{C}$)</strong></td><td><strong>4 186</strong></td><td><strong>1,00</strong></td></tr>
+                        <tr><td>Vapor d'água ($100^\circ\text{C}$)</td><td>2 010</td><td>0,48</td></tr>
+                    </tbody>
+                </table>
+                <ul class="beamer-list" style="font-size:0.95rem;">
+                    <li>O calor específico varia com a temperatura. No entanto, se o intervalo não for muito grande, $c$ pode ser assumido constante.</li>
+                    <li>Por exemplo, o $c$ da água entre $0$ e $100^\circ\text{C}$ varia apenas $1\%$.</li>
+                    <li>O valor de $c$ também depende das condições do experimento: à pressão constante ($c_p$) e a volume constante ($c_V$) apresentam diferenças consideráveis em <strong>gases</strong>. Em <strong>líquidos</strong> essa diferença é desprezível.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 12: EXEMPLO CALOR ESPECÍFICO (Página 12/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Exemplo - Capacidade Térmica">
+            <h2 class="slide-title">Exemplo</h2>
+            <div class="eq-box" style="font-size:1.2rem; padding:24px;">
+                Qual a energia necessária para elevar a temperatura de $2\text{ L}$ de água em $5^\circ\text{C}$? Qual a capacidade térmica desse volume de água?
+            </div>
+            <p style="color:var(--muted-color); margin-top:12px;"><em>Dica: Considere densidade da água $\rho \approx 1\text{ kg/L}$ e $c_{\text{água}} = 4186\text{ J/kg}\cdot^\circ\text{C}$.</em></p>
+        </section>
+
+        <!-- =================================================================
+             SLIDE 13: CALORIMETRIA - CONSERVAÇÃO DE ENERGIA (Página 13/42)
+             ================================================================= -->
+        <section class="slide" data-sec="2" data-title="Calorimetria: conservação de energia">
+            <h2 class="slide-title">Calorimetria: conservação de energia</h2>
+            <p style="font-size:1.05rem; line-height:1.6; margin-bottom:14px;">Uma técnica de medir o calor específico consiste em aquecer uma substância até uma certa temperatura $T_x$ e colocá-la em um recipiente (com paredes isolantes) com água, a uma temperatura $T_a$, e medir a temperatura após o equilíbrio. O trabalho e a troca de energia com o meio são desprezíveis. Um equipamento com esse princípio é chamado <strong>Calorímetro</strong>.</p>
+            <p style="font-size:1.05rem; line-height:1.6;">A única troca de energia é o calor entre a substância e a água. Dessa forma, pelo princípio de conservação da

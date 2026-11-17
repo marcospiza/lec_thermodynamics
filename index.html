@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Interativo: Termodinâmica (CECA)</title>
+
+    <!-- =====================================================================
+         1. BIBLIOTECAS EXTERNAS (MathJax para fórmulas e Chart.js para gráficos)
+         Se quiser usar offline no futuro, baixe esses arquivos localmente.
+         ===================================================================== -->
+    <script>
+        // Configuração do MathJax para reconhecer cifrões simples ($...$) para equações na linha
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- =====================================================================
+         2. ESTILOS CSS E VARIÁVEIS DE TEMA (PLANO DE FUNDO)
+         Para mudar as cores globais do site, edite apenas as variáveis abaixo.
+         ===================================================================== -->
+    <style>
+        /* TEMA 1: Papel Científico (Padrão) */
+        :root {
+            --bg-color: #f8fafc;
+            /* Padrão de pontos tipo papel milimetrado */
+            --bg-pattern: radial-gradient(#cbd5e1 1px, transparent 1px);
+            --bg-size: 20px 20px;
+            --card-bg: #ffffff;
+            --sidebar-bg: #0f172a;
+            --sidebar-text: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --accent-color: #15803d; /* Verde CECA */
+            --accent-hover: #166534;
+            --border-color: #e2e8f0;
+            --formula-bg: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        }
+
+        /* TEMA 2: Modo Escuro (Slate Dark) */
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --bg-pattern: radial-gradient(#334155 1px, transparent 1px);
+            --bg-size: 24px 24px;
+            --card-bg: #1e293b;
+            --sidebar-bg: #020617;
+            --sidebar-text: #e2e8f0;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-color: #22c55e;
+            --accent-hover: #16a34a;
+            --border-color: #334155;
+            --formula-bg: #0f172a;
+            --shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        /* TEMA 3: Gradiente Suave CECA (Verde Agrário) */
+        [data-theme="ceca"] {
+            --bg-color: #f0fdf4;
+            --bg-pattern: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            --bg-size: cover;
+            --card-bg: rgba(255, 255, 255, 0.92);
+            --sidebar-bg: #14532d;
+            --sidebar-text: #f0fdf4;
+            --text-primary: #14532d;
+            --text-secondary: #374151;
+            --accent-color: #15803d;
+            --accent-hover: #166534;
+            --border-color: #bbf7d0;
+            --formula-bg: #ecfdf5;
+            --shadow: 0 4px 12px rgba(20, 83, 45, 0.08);
+        }
+
+        /* TEMA 4: Blueprint (Planta Técnica de Engenharia) */
+        [data-theme="blueprint"] {
+            --bg-color: #1e3a8a;
+            --bg-pattern: 
+                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            --bg-size: 25px 25px;
+            --card-bg: rgba(23, 37, 84, 0.9);
+            --sidebar-bg: #172554;
+            --sidebar-text: #dbeafe;
+            --text-primary: #ffffff;
+            --text-secondary: #bfdbfe;
+            --accent-color: #38bdf8;
+            --accent-hover: #0284c7;
+            --border-color: #1d4ed8;
+            --formula-bg: #1e3a8a;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Reset básico e configurações de fonte */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: var(--bg-pattern);
+            background-size: var(--bg-size);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* =====================================================================
+           3. LAYOUT DO DASHBOARD (Barra Lateral + Área Principal)
+           ===================================================================== */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .brand {
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+        }
+
+        .brand h1 {
+            font-size: 1.3rem;
+            color: #4ade80;
+            margin-bottom: 4px;
+        }
+
+        .brand p {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Botões de navegação do menu lateral */
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--sidebar-text);
+            text-align: left;
+            padding: 12px 14px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn.active {
+            background: var(--accent-color);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        /* Conteúdo principal à direita */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 28px 36px;
+            max-width: 1200px;
+        }
+
+        /* Barra superior com título da seção e seletor de tema */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .theme-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .theme-selector select {
+            background: transparent;
+            color: var(--text-primary);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* =====================================================================
+           4. CARTÕES, GRIDS E CAIXAS DE FÓRMULAS
+           ===================================================================== */
+        .module-section {
+            display: none; /* Esconde as abas inativas */
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .module-section.active {
+            display: block; /* Mostra apenas a aba selecionada */
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 22px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .card p, .card li {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .card ul {
+            padding-left: 20px;
+        }
+
+        /* Destaque para equações matemáticas */
+        .formula-box {
+            background: var(--formula-bg);
+            border-left: 4px solid var(--accent-color);
+            padding: 14px 18px;
+            margin: 14px 0;
+            border-radius: 6px;
+            font-size: 1.05rem;
+            overflow-x: auto;
+        }
+
+        /* =====================================================================
+           5. SIMULADORES INTERATIVOS, TABELAS E BOTÕES DE RESPOSTA
+           ===================================================================== */
+        .calc-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 14px 0;
+            align-items: flex-end;
+        }
+
+        .input-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .input-box label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-box input, .input-box select {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            width: 140px;
+        }
+
+        .btn-action {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 9px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--accent-hover);
+        }
+
+        .result-badge {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--formula-bg);
+            border-radius: 6px;
+            font-weight: 600;
+            color: var(--accent-color);
+        }
+
+        .solution-toggle {
+            display: none;
+            margin-top: 12px;
+            padding: 14px;
+            background: var(--formula-bg);
+            border-radius: 8px;
+            border: 1px dashed var(--accent-color);
+        }
+
+        /* Tabelas de dados (Calor Específico, Latente, Condutividade) */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: var(--formula-bg);
+            color: var(--text-primary);
+        }
+
+        /* Responsividade para celulares/tablets */
+        @media (max-width: 850px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =====================================================================
+         MENU LATERAL DE NAVEGAÇÃO
+         Para adicionar uma nova aba, crie um botão aqui com data-target="id-da-secao"
+         ===================================================================== -->
+    <aside class="sidebar">
+        <div class="brand">
+            <h1>Termodinâmica</h1>
+            <p>Prof. Marcos Alex dos Santos</p>
+            <p>Centro de Ciências Agrárias (CECA)</p>
+        </div>
+
+        <button class="nav-btn active" onclick="openTab('mod-energia', this)">⚡ 1. Formas de Energia</button>
+        <button class="nav-btn" onclick="openTab('mod-calor', this)">🔥 2. Calor & Calorimetria</button>
+        <button class="nav-btn" onclick="openTab('mod-trabalho', this)">⚙️ 3. Trabalho & Diagrama PV</button>
+        <button class="nav-btn" onclick="openTab('mod-primeira-lei', this)">⚖️ 4. Primeira Lei</button>
+        <button class="nav-btn" onclick="openTab('mod-fourier', this)">🧱 5. Condução & Lei de Fourier</button>
+    </aside>
+
+    <!-- =====================================================================
+         ÁREA PRINCIPAL DE CONTEÚDO
+         ===================================================================== -->
+    <main class="main-content">
+        
+        <!-- Cabeçalho Superior + Seletor de Plano de Fundo -->
+        <div class="top-bar">
+            <div>
+                <h2 id="page-title">1. Formas de Energia e Energia Interna</h2>
+                <span style="font-size: 0.85rem; color: var(--text-secondary);">Material Interativo de Estudo • 42 Slides Convertidos</span>
+            </div>
+
+            <div class="theme-selector">
+                <span>🎨 Fundo:</span>
+                <select id="themeSelect" onchange="changeTheme(this.value)">
+                    <option value="default">Papel Científico (Grade)</option>
+                    <option value="ceca">Verde Agrário (CECA)</option>
+                    <option value="dark">Modo Noturno (Escuro)</option>
+                    <option value="blueprint">Blueprint Engenharia</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- =================================================================
+             MÓDULO 1: FORMAS DE ENERGIA (Slides 2 a 5)
+             ================================================================= -->
+        <section id="mod-energia" class="module-section active">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Escala Macroscópica vs. Microscópica</h3>
+                    <ul>
+                        <li><strong>Energia Macroscópica:</strong> Energia que um sistema possui como um todo em relação a um referencial externo (Ex: <em>Energia Cinética</em> e <em>Energia Potencial</em> gravitacional/elástica).</li>
+                        <li><strong>Energia Microscópica:</strong> Relacionada à estrutura molecular e ao grau de atividade das moléculas, independente de referencial externo.</li>
+                        <li>A soma de todas as formas de energia microscópica é chamada de <strong>Energia Interna ($U$)</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Componentes da Energia Interna ($U$)</h3>
+                    <ul>
+                        <li><strong>Energia Sensível:</strong> Associada ao movimento de translação, rotação, vibração molecular e spin/rotação de elétrons. Ligada diretamente à <em>temperatura</em>.</li>
+                        <li><strong>Energia Latente:</strong> Associada à mudança de fase (sem alterar composição química).</li>
+                        <li><strong>Energia Química:</strong> Associada às ligações atômicas (ex: combustão).</li>
+                        <li><strong>Energia Nuclear:</strong> Ligações fortes no interior do núcleo atômico (fissão/fusão).</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Balanço Global e Fronteiras do Sistema</h3>
+                <div class="formula-box">
+                    $$\text{Energia Interna } (U) = E_{\text{sensível}} + E_{\text{latente}} + E_{\text{química}} + E_{\text{nuclear}}$$
+                    $$\text{Energia Total } (E) = E_{\text{macroscópica (mecânica)}} + U$$
+                </div>
+                <p><strong>Sistemas Fechados vs. Abertos:</strong> Em um <em>sistema fechado</em>, a energia cruza a fronteira apenas como <strong>Calor</strong> ou <strong>Trabalho</strong>. Em um <em>sistema aberto</em>, ocorre também fluxo de massa.</p>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 2: CALOR, CALORIMETRIA E MUDANÇA DE FASE (Slides 6 a 18)
+             ================================================================= -->
+        <section id="mod-calor" class="module-section">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Conceito e Unidades de Calor</h3>
+                    <p><strong>Calor ($Q$):</strong> Transferência de energia através da fronteira de um sistema devido a uma diferença de temperatura (ocorre por <em>condução, convecção ou radiação</em>).</p>
+                    <ul>
+                        <li><strong>1 caloria (cal):</strong> Energia para elevar 1 g de água de $14,5^\circ\text{C}$ para $15,5^\circ\text{C}$.</li>
+                        <li><strong>1 Btu:</strong> Energia para elevar 1 lb de água de $63^\circ\text{F}$ para $64^\circ\text{F}$.</li>
+                        <li><strong>Equivalente Mecânico (Joule):</strong> $1\text{ cal} = 4,186\text{ J}$.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Calor Sensível vs. Calor Latente</h3>
+                    <div class="formula-box">
+                        <strong>Capacidade Térmica ($C$):</strong> $C = \frac{Q}{\Delta T} = m \cdot c$
+                        <br><br>
+                        <strong>Calor Sensível:</strong> $Q = m \cdot c \cdot \Delta T$
+                        <br><br>
+                        <strong>Calor Latente (Mudança de Fase):</strong> $Q = m \cdot L$
+                    </div>
+                    <p>Nota: Para gases, o calor específico varia significativamente entre pressão constante ($c_p$) e volume constante ($c_V$). Em líquidos, essa diferença é desprezível.</p>
+                </div>
+            </div>
+
+            <!-- Simulador Interativo de Calorimetria -->
+            <div class="card">
+                <h3>🧮 Simulador de Calorimetria e Aquecimento ($Q = m c \Delta T$)</h3>
+                <p>Calcule rapidamente a energia necessária para aquecer uma substância (baseado na tabela do Slide 11):</p>
+                <div class="calc-group">
+                    <div class="input-box">
+                        <label>Substância ($c$ em $\text{J/kg}^\circ\text{C}$)</label>
+                        <select id="calc-subst">
+                            <option value="4186">Água Líquida (4186)</option>
+                            <option value="2090">Gelo a -5°C (2090)</option>
+                            <option value="2010">Vapor a 100°C (2010)</option>
+                            <option value="900">Alumínio (900)</option>
+                            <option value="387">Cobre (387)</option>
+                            <option value="448">Ferro (448)</option>
+                            <option value="1700">Madeira (1700)</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label>Massa ($m$ em kg)</label>
+                        <input type="number" id="calc-massa" value="2" step="0.1">
+                    </div>
+                    <div class="input-box">
+                        <label>Variação $\Delta T$ ($^\circ\text{C}$)</label>
+                        <input type="number" id="calc-dt" value="5" step="1">
+                    </div>
+                    <button class="btn-action" onclick="calcularCalor()">Calcular Energia</button>
+                </div>
+                <div id="res-calor" class="result-badge">Resultado: $Q = 41.860\text{ J}$ ($10,00\text{ kcal}$) | Capacidade Térmica $C = 8.372\text{ J/}^\circ\text{C}$</div>
+            </div>
+
+            <!-- Exercícios Resolvidos da Aula (Slides 12, 15 e 18) -->
+            <div class="card">
+                <h3>📝 Exercícios da Aula (Clique para ver a resolução passo a passo)</h3>
+                
+                <p><strong>1. Exemplo Slide 12:</strong> Qual a energia necessária para elevar a temperatura de 2 L de água em $5^\circ\text{C}$? Qual a capacidade térmica desse volume?</p>
+                <button class="btn-action" onclick="toggleSol('sol1')">Mostrar / Ocultar Resolução 1</button>
+                <div id="sol1" class="solution-toggle">
+                    <p>Como a densidade da água é $\approx 1\text{ kg/L}$, temos $m = 2\text{ kg}$ ($2000\text{ g}$).</p>
+                    <p>$$Q = m \cdot c \cdot \Delta T = 2\text{ kg} \times 4186\text{ J/(kg}\cdot^\circ\text{C)} \times 5^\circ\text{C} = \mathbf{41.860\text{ J}} \text{ (ou } 10\text{ kcal)}$$</p>
+                    <p>$$C = m \cdot c = 2 \times 4186 = \mathbf{8.372\text{ J/}^\circ\text{C}}$$</p>
+                </div>
+
+                <hr style="margin: 16px 0; border-color: var(--border-color);">
+
+                <p><strong>2. Exemplo Slide 18:</strong> Calcule a energia necessária para transformar $1\text{ g}$ de gelo a $-30^\circ\text{C}$ em vapor a $120^\circ\text{C}$. (Dados: $c_{\text{gelo}}=2090$, $L_f = 3,33\times 10^5\text{ J/kg}$, $c_{\text{água}}=4186$, $L_v = 2,26\times 10^6\text{ J/kg}$, $c_{\text{vapor}}=2010\text{ J/kg}^\circ\text{C}$).</p>
+                <button class="btn-action" onclick="toggleSol('sol2')">Mostrar / Ocultar Resolução 2</button>
+                <div id="sol2" class="solution-toggle">
+                    <p>Para $m = 0,001\text{ kg}$ ($1\text{ g}$), dividimos em 5 etapas:</p>
+                    <ul>
+                        <li>$Q_1$ (Gelo $-30^\circ\text{C} \to 0^\circ\text{C}$): $0,001 \times 2090 \times 30 = 62,7\text{ J}$</li>
+                        <li>$Q_2$ (Fusão a $0^\circ\text{C}$): $0,001 \times 3,33\times 10^5 = 333,0\text{ J}$</li>
+                        <li>$Q_3$ (Água $0^\circ\text{C} \to 100^\circ\text{C}$): $0,001 \times 4186 \times 100 = 418,6\text{ J}$</li>
+                        <li>$Q_4$ (Vaporização a $100^\circ\text{C}$): $0,001 \times 2,26\times 10^6 = 2260,0\text{ J}$</li>
+                        <li>$Q_5$ (Vapor $100^\circ\text{C} \to 120^\circ\text{C}$): $0,001 \times 2010 \times 20 = 40,2\text{ J}$</li>
+                    </ul>
+                    <p><strong>Energia Total:</strong> $Q_{\text{total}} = \mathbf{3.114,5\text{ J}}$ ($\approx 3,11\text{ kJ}$).</p>
+                    <p><em>Nota sobre queimaduras:</em> O vapor a $100^\circ\text{C}$ causa queimaduras muito mais graves porque, ao condensar na pele, libera imediatamente o altíssimo calor latente de vaporização ($2260\text{ J/g}$) antes mesmo de esfriar.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 3: TRABALHO TERMODINÂMICO E DIAGRAMA PV (Slides 19 a 31)
+             ================================================================= -->
+        <section id="mod-trabalho" class="module-section">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Convenção de Sinais e Equações</h3>
+                    <div class="formula-box">
+                        <strong>Processo Irreversível ($P_{\text{ext}}$ constante):</strong>
+                        $$W = -P_e \Delta V = -P_e (V_2 - V_1)$$
+                        <strong>Processo Reversível Isotérmico (Gás Ideal):</strong>
+                        $$W_{\text{rev}} = -\int_{V_1}^{V_2} P\,dV = -nRT \ln\left(\frac{V_2}{V_1}\right)$$
+                    </div>
+                    <ul>
+                        <li><strong>Expansão ($\Delta V > 0 \implies W < 0$):</strong> O gás empurra o pistão e realiza trabalho sobre o meio (sistema perde energia).</li>
+                        <li><strong>Compressão ($\Delta V < 0 \implies W > 0$):</strong> O meio comprime o gás e realiza trabalho sobre o sistema (sistema ganha energia).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>📊 Diagrama $P \times V$: Irreversível vs. Reversível</h3>
+                    <p>Use o controle deslizante abaixo para aumentar o número de etapas ($N$) na retirada das massas sobre o pistão (Slides 23 a 30) e observe a curva se aproximar do processo reversível:</p>
+                    
+                    <div class="calc-group">
+                        <div class="input-box" style="width: 100%;">
+                            <label>Número de Etapas de Expansão ($N$): <strong id="etapas-label">1 etapa (Irreversível brusco)</strong></label>
+                            <input type="range" id="etapas-slider" min="1" max="30" value="1" style="width: 100%;" oninput="atualizarGraficoPV(this.value)">
+                        </div>
+                    </div>
+                    <!-- Canvas onde o Chart.js desenha o gráfico -->
+                    <canvas id="pvChart" height="210"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 4: PRIMEIRA LEI DA TERMODINÂMICA (Slides 32 a 35)
+             ================================================================= -->
+        <section id="mod-primeira-lei" class="module-section">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Conservação da Energia</h3>
+                    <p>Para um sistema fechado e estacionário, a variação da Energia Interna ($U$) é a soma algébrica do calor e do trabalho trocados na fronteira:</p>
+                    <div class="formula-box">
+                        $$\Delta U = Q + W$$
+                        <small>Para sistemas abertos com fluxo de massa: $\Delta U = Q + W + E_{\text{massa,in}} - E_{\text{massa,out}}$</small>
+                    </div>
+                    <p><strong>Convenção adotada na aula:</strong> $Q > 0$ e $W > 0$ quando energia é fornecida <em>ao sistema</em> pelo meio.</p>
+                </div>
+
+                <div class="card">
+                    <h3>Função de Estado vs. Função de Caminho</h3>
+                    <ul>
+                        <li><strong>Energia Interna ($U$) é Função de Estado:</strong> $\Delta U = U_2 - U_1$ depende exclusivamente dos estados inicial e final, nunca do caminho percorrido.</li>
+                        <li><strong>Trabalho ($W$) e Calor ($Q$) dependem do caminho:</strong> Não são propriedades do sistema, mas sim mecanismos de transferência de energia em trânsito.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>📝 Exercício Primeira Lei (Slide 35)</h3>
+                <p>Um mol de gás ideal ($n = 1\text{ mol}$), a $298\text{ K}$, exercendo uma pressão inicial de $250\text{ kPa}$ sobre um pistão, expande-se irreversível e isotermicamente contra uma pressão externa constante de $100\text{ kPa}$, até que sua pressão se torne igual à pressão externa. Qual o trabalho executado nessa expansão? E se ocorresse de forma reversível? ($R = 8,314\text{ J/mol}\cdot\text{K}$).</p>
+                <button class="btn-action" onclick="toggleSol('sol3')">Mostrar / Ocultar Resolução</button>
+                <div id="sol3" class="solution-toggle">
+                    <p><strong>1. Volumes inicial e final (Lei dos Gases Ideais $V = nRT/P$):</strong></p>
+                    <p>$$V_1 = \frac{1 \times 8,314 \times 298}{250.000} = 0,00991\text{ m}^3 \quad | \quad V_2 = \frac{1 \times 8,314 \times 298}{100.000} = 0,02478\text{ m}^3$$</p>
+                    <p><strong>2. Expansão Irreversível ($P_{\text{ext}} = 100\text{ kPa}$):</strong></p>
+                    <p>$$W_{\text{irrev}} = -P_{\text{ext}}(V_2 - V_1) = -100.000 \times (0,02478 - 0,00991) = \mathbf{-1.486,5\text{ J}}$$</p>
+                    <p><strong>3. Expansão Reversível Isotérmica:</strong></p>
+                    <p>$$W_{\text{rev}} = -nRT \ln\left(\frac{V_2}{V_1}\right) = -1 \times 8,314 \times 298 \times \ln\left(\frac{250}{100}\right) = \mathbf{-2.270,3\text{ J}}$$</p>
+                    <p><em>Conclusão:</em> O processo reversível extrai o trabalho máximo possível do sistema ($2.270,3\text{ J}$ contra $1.486,5\text{ J}$).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =================================================================
+             MÓDULO 5: CONDUÇÃO TÉRMICA E LEI DE FOURIER (Slides 36 a 42)
+             ================================================================= -->
+        <section id="mod-fourier" class="module-section">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Lei de Fourier (Regime Estacionário)</h3>
+                    <p>A condução ocorre em escala microscópica por colisões moleculares e movimento de elétrons livres. A densidade de fluxo de calor $q$ ($\text{W/m}^2$) é proporcional ao gradiente de temperatura:</p>
+                    <div class="formula-box">
+                        $$q = \frac{Q}{A\Delta t} = -k \frac{\Delta T}{\Delta x} \quad \text{ou} \quad q = -k \frac{dT}{dx}$$
+                    </div>
+                    <ul>
+                        <li>$k$: Condutividade térmica do material ($\text{W/m}\cdot\text{K}$).</li>
+                        <li>O sinal negativo indica que o calor flui da temperatura maior para a menor.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h3>Resistência Térmica ($R$) e Paredes Compostas</h3>
+                    <p>Para múltiplas camadas em série (ex: isolamento térmico de galpões agrícolas ou câmaras frias):</p>
+                    <div class="formula-box">
+                        $$R_i = \frac{L_i}{k_i} \quad [\text{m}^2\cdot\text{K/W}]$$
+                        $$q = -\frac{T_2 - T_1}{\sum_{i=1}^{n} R_i}$$
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calculadora de Parede Composta -->
+            <div class="card">
+                <h3>🧱 Simulador de Parede Isolante Composta (Baseado no Slide 42)</h3>
+                <p>Simule a densidade de fluxo de calor ($q$) através de uma parede formada por 2 materiais isolantes:</p>
+                <div class="calc-group">
+                    <div class="input-box">
+                        <label>Material 1 ($k_1$ em $\text{W/m}\cdot\text{K}$)</label>
+                        <select id="mat1">
+                            <option value="0.029">Poliestireno Extrudado XPS (0,029)</option>
+                            <option value="0.038">Lã de Vidro 28 kg/m³ (0,038)</option>
+                            <option value="0.039">Cortiça (0,039)</option>
+                            <option value="0.040">Poliestireno Expandido EPS (0,040)</option>
+                            <option value="0.046">Lã de Vidro 16 kg/m³ (0,046)</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label>Espessura $L_1$ (cm)</label>
+                        <input type="number" id="esp1" value="5" step="0.5">
+                    </div>
+                    <div class="input-box">
+                        <label>Material 2 ($k_2$ em $\text{W/m}\cdot\text{K}$)</label>
+                        <select id="mat2">
+                            <option value="0.039">Cortiça (0,039)</option>
+                            <option value="0.029">Poliestireno Extrudado XPS (0,029)</option>
+                            <option value="0.040">Poliestireno Expandido EPS (0,040)</option>
+                            <option value="0.046">Lã de Vidro 16 kg/m³ (0,046)</option>
+                        </select>
+                    </div>
+                    <div class="input-box">
+                        <label>Espessura $L_2$ (cm)</label>
+                        <input type="number" id="esp2" value="2.5" step="0.5">
+                    </div>
+                    <div class="input-box">
+                        <label>$\Delta T$ ($T_{\text{ext}} - T_{\text{int}}$ em $^\circ\text{C}$)</label>
+                        <input type="number" id="dt-parede" value="15" step="1">
+                    </div>
+                    <button class="btn-action" onclick="calcularFourier()">Calcular Fluxo</button>
+                </div>
+                <div id="res-fourier" class="result-badge">Resistência Total: $2,365\text{ m}^2\cdot\text{K/W}$ | Densidade de Fluxo $q = 6,34\text{ W/m}^2$</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- =====================================================================
+         6. CÓDIGO JAVASCRIPT (Interatividade, Abas, Cálculos e Gráficos)
+         ===================================================================== -->
+    <script>
+        /* -------------------------------------------------------------------
+           FUNÇÃO 1: Alternar entre as abas do menu lateral
+           ------------------------------------------------------------------- */
+        function openTab(sectionId, btnElement) {
+            // Esconde todas as seções
+            document.querySelectorAll('.module-section').forEach(sec => sec.classList.remove('active'));
+            // Remove destaque de todos os botões
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mostra a seção clicada e destaca o botão
+            document.getElementById(sectionId).classList.add('active');
+            btnElement.classList.add('active');
+
+            // Atualiza o título superior da página com o texto do botão
+            document.getElementById('page-title').innerText = btnElement.innerText;
+        }
+
+        /* -------------------------------------------------------------------
+           FUNÇÃO 2: Trocar o tema / plano de fundo
+           ------------------------------------------------------------------- */
+        function changeTheme(themeName) {
+            if (themeName === 'default') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', themeName);
+            }
+        }
+
+        /* -------------------------------------------------------------------
+           FUNÇÃO 3: Mostrar / Esconder resoluções dos exercícios
+           ------------------------------------------------------------------- */
+        function toggleSol(id) {
+            const el = document.getElementById(id);
+            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+        }
+
+        /* -------------------------------------------------------------------
+           FUNÇÃO 4: Calculadora de Calor Sensível (Módulo 2)
+           ------------------------------------------------------------------- */
+        function calcularCalor() {
+            const c = parseFloat(document.getElementById('calc-subst').value);
+            const m = parseFloat(document.getElementById('calc-massa').value);
+            const dt = parseFloat(document.getElementById('calc-dt').value);
+
+            const C_termica = m * c;
+            const Q_joules = C_termica * dt;
+            const Q_kcal = (Q_joules / 4.186) / 1000;
+
+            document.getElementById('res-calor').innerHTML = 
+                `Resultado: Q = ${Q_joules.toLocaleString('pt-BR')} J (${Q_kcal.toFixed(2)} kcal) | Capacidade Térmica C = ${C_termica.toLocaleString('pt-BR')} J/°C`;
+        }
+
+        /* -------------------------------------------------------------------
+           FUNÇÃO 5: Calculadora de Lei de Fourier (Módulo 5)
+           ------------------------------------------------------------------- */
+        function calcularFourier() {
+            const k1 = parseFloat(document.getElementById('mat1').value);
+            const L1 = parseFloat(document.getElementById('esp1').value) / 100; // cm para metros
+            const k2 = parseFloat(document.getElementById('mat2').value);
+            const L2 = parseFloat(document.getElementById('esp2').value) / 100; // cm para metros
+            const dT = parseFloat(document.getElementById('dt-parede').value);
+
+            const R1 = L1 / k1;
+            const R2 = L2 / k2;
+            const R_total = R1 + R2;
+            const q = dT / R_total;
+
+            document.getElementById('res-fourier').innerHTML = 
+                `Resistência Total: ${R_total.toFixed(3)} m²·K/W (R₁=${R1.toFixed(2)}, R₂=${R2.toFixed(2)}) | Densidade de Fluxo q = ${q.toFixed(2)} W/m²`;
+        }
+
+        /* -------------------------------------------------------------------
+           FUNÇÃO 6: Gráfico Interativo Pressão x Volume (Módulo 3)
+           Simula uma isoterma P = 10 / V indo de V1 = 1 até V2 = 5
+           ------------------------------------------------------------------- */
+        let pvChartInstance = null;
+
+        function gerarDadosPV(numEtapas) {
+            const V1 = 1, V2 = 5, K = 10; // P * V = 10 (isotérmico)
+            
+            // Curva ideal reversível (suave)
+            const curvaIdeal = [];
+            for (let v = V1; v <= V2; v += 0.1) {
+                curvaIdeal.push({ x: parseFloat(v.toFixed(2)), y: parseFloat((K / v).toFixed(2)) });
+            }
+
+            // Degraus irreversíveis em N etapas
+            const degraus = [{ x: V1, y: K / V1 }];
+            const dP = ((K / V1) - (K / V2)) / numEtapas;
+            
+            let pAtual = K / V1;
+            let vAtual = V1;
+
+            for (let i = 0; i < numEtapas; i++) {
+                let pProx = pAtual - dP;
+                let vProx = K / pProx;
+                // Queda brusca de pressão externa a volume constante
+                degraus.push({ x: parseFloat(vAtual.toFixed(2)), y: parseFloat(pProx.toFixed(2)) });
+                // Expansão isobárica até o novo equilíbrio
+                degraus.push({ x: parseFloat(vProx.toFixed(2)), y: parseFloat(pProx.toFixed(2)) });
+                pAtual = pProx;
+                vAtual = vProx;
+            }
+
+            return { curvaIdeal, degraus };
+        }
+
+        function atualizarGraficoPV(etapas) {
+            const n = parseInt(etapas);
+            const label = document.getElementById('etapas-label');
+            if (n === 1) label.innerText = "1 etapa (Irreversível brusco - Slide 23)";
+            else if (n < 25) label.innerText = `${n} etapas intermediárias (Slides 26-28)`;
+            else label.innerText = `${n} etapas (Aproximação Quase-Estática / Reversível - Slide 29)`;
+
+            const dados = gerarDadosPV(n);
+            pvChartInstance.data.datasets[0].data = dados.degraus;
+            pvChartInstance.update();
+        }
+
+        // Inicializa o gráfico assim que a página carrega
+        window.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('pvChart').getContext('2d');
+            const dadosIniciais = gerarDadosPV(1);
+
+            pvChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Trabalho Irreversível (Área sob degraus)',
+                            data: dadosIniciais.degraus,
+                            showLine: true,
+                            fill: true,
+                            backgroundColor: 'rgba(21, 128, 61, 0.25)',
+                            borderColor: '#15803d',
+                            borderWidth: 2,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Isoterma Reversível Ideal (P = nRT/V)',
+                            data: dadosIniciais.curvaIdeal,
+                            showLine: true,
+                            fill: false,
+                            borderColor: '#ef4444',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Volume (V)' }, min: 0.5, max: 5.5 },
+                        y: { title: { display: true, text: 'Pressão Externa (P)' }, min: 0, max: 11 }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
